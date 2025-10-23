@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # MongoDB Service
+  mongo:
+    image: mongo:7.0
+    container_name: task-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: taskdb
+    networks:
+      - task-network
+
+  # Node.js API Service
+  api:
+    build: .
+    container_name: task-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongo:27017/taskdb
+    depends_on:
+      - mongo
+    networks:
+      - task-network
+    volumes:
+      - ./:/app
+      - /app/node_modules
+
+volumes:
+  mongo-data:
+
+networks:
+  task-network:
+    driver: bridge
