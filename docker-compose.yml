@@ -14,10 +14,15 @@ services:
       MONGO_INITDB_DATABASE: taskdb
     networks:
       - task-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Node.js API Service
   api:
-    build: .
+    image: ${DOCKER_USERNAME:-sri2710}/task-api:latest
     container_name: task-api
     restart: unless-stopped
     ports:
@@ -26,12 +31,16 @@ services:
       - PORT=3000
       - MONGODB_URI=mongodb://mongo:27017/taskdb
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
     networks:
       - task-network
-    volumes:
-      - ./:/app
-      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      start_period: 40s
+      retries: 3
 
 volumes:
   mongo-data:
